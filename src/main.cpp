@@ -4,6 +4,9 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_win32.h>
+#include <imgui/imgui_impl_dx11.h>
 
 using namespace Microsoft::WRL;
 
@@ -27,6 +30,8 @@ D3D11_VIEWPORT viewport;
 
 void InitD3D();
 void MainLoop();
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 void ThrowIfFailed(HRESULT hr) {
 	if (FAILED(hr))
@@ -66,6 +71,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	InitD3D();
 
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+
+	ImGui_ImplWin32_Init(g_hwnd);
+	ImGui_ImplDX11_Init(dev.Get(), con.Get());
+
 	MSG msg;
 	while (!g_bQuit) {
 		while (PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE)) {
@@ -87,7 +98,7 @@ void InitD3D() {
 
 	DXGI_SWAP_CHAIN_DESC scDesc = { };
 	scDesc.BufferCount = 1;
-	scDesc.SampleDesc.Count = 1;
+	scDesc.SampleDesc.Count = 4;
 	scDesc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 	scDesc.Windowed = TRUE;
 	scDesc.OutputWindow = g_hwnd;
@@ -128,6 +139,16 @@ void MainLoop() {
 	con->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
 	con->RSSetViewports(1, &viewport);
 
+	ImGui_ImplWin32_NewFrame();
+	ImGui_ImplDX11_NewFrame();
+	ImGui::NewFrame();
+
+	ImGui::Begin("CodeVortex");
+	ImGui::End();
+
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
 	sc->Present(1, 0);
 }
 
@@ -140,6 +161,9 @@ void DebugConsole() {
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	if (ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
+		return 0;
+
 	switch (uMsg) {
 	case WM_DESTROY:
 		g_bQuit = true;
