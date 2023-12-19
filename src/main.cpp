@@ -7,6 +7,8 @@
 
 using namespace Microsoft::WRL;
 
+typedef float RGBA[4];
+
 void DebugConsole();
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -62,12 +64,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	if (g_hwnd)
 		ShowWindow(g_hwnd, nShowCmd);
 
+	InitD3D();
+
 	MSG msg;
 	while (!g_bQuit) {
 		while (PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
+		MainLoop();
 	}
 
 	return 0;
@@ -82,6 +87,7 @@ void InitD3D() {
 
 	DXGI_SWAP_CHAIN_DESC scDesc = { };
 	scDesc.BufferCount = 1;
+	scDesc.SampleDesc.Count = 1;
 	scDesc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 	scDesc.Windowed = TRUE;
 	scDesc.OutputWindow = g_hwnd;
@@ -118,7 +124,11 @@ void InitD3D() {
 }
 
 void MainLoop() {
+	con->ClearRenderTargetView(rtv.Get(), RGBA { 0.f, 0.f, 0.f, 1.f });
+	con->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
+	con->RSSetViewports(1, &viewport);
 
+	sc->Present(1, 0);
 }
 
 void DebugConsole() {
